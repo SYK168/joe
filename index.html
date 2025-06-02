@@ -1,124 +1,105 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>3D Ball Game</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
+<meta charset="UTF-8" />
+<title>3D Ball Drag Test</title>
+<style>
+  body { margin: 0; overflow: hidden; }
+  canvas { display: block; }
+</style>
 </head>
 <body>
-  <!-- Load Three.js and OrbitControls using classic scripts -->
-  <script src="https://unpkg.com/three@0.148.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.148.0/examples/js/controls/OrbitControls.js"></script>
 
-  <script>
-    // Setup scene, camera, renderer
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+<script src="https://unpkg.com/three@0.148.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.148.0/examples/js/controls/OrbitControls.js"></script>
 
-    // OrbitControls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
+<script>
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+  const renderer = new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-    // Light
-    const light = new THREE.PointLight(0xffffff, 1, 100);
-    light.position.set(10, 10, 10);
-    scene.add(light);
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
 
-    // Ball mesh
-    const ballGeometry = new THREE.SphereGeometry(1, 32, 32);
-    const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x0077ff });
-    const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-    ball.name = "ball";
-    scene.add(ball);
+  // Add a light
+  const light = new THREE.PointLight(0xffffff, 1);
+  light.position.set(10, 10, 10);
+  scene.add(light);
 
-    // Floor plane to drag on
-    const planeGeometry = new THREE.PlaneGeometry(20, 20);
-    const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide });
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.rotation.x = -Math.PI / 2;
-    scene.add(plane);
+  // Create ball
+  const ballGeom = new THREE.SphereGeometry(1, 32, 32);
+  const ballMat = new THREE.MeshStandardMaterial({color: 0x0077ff});
+  const ball = new THREE.Mesh(ballGeom, ballMat);
+  ball.position.y = 1;
+  scene.add(ball);
 
-    camera.position.set(0, 5, 10);
-    camera.lookAt(0, 0, 0);
+  // Create plane for dragging
+  const planeGeom = new THREE.PlaneGeometry(20, 20);
+  const planeMat = new THREE.MeshStandardMaterial({color: 0x888888, side: THREE.DoubleSide});
+  const plane = new THREE.Mesh(planeGeom, planeMat);
+  plane.rotation.x = -Math.PI / 2;
+  scene.add(plane);
 
-    // Raycaster and mouse vector for interaction
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    let selected = null;
-    let offset = new THREE.Vector3();
-    let dragging = false;
+  camera.position.set(0, 5, 10);
+  camera.lookAt(0, 0, 0);
 
-    // Variables for simple bouncing physics
-    let velocity = -0.1;
-    let y = 5;
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
 
-    function animate() {
-      requestAnimationFrame(animate);
+  let dragging = false;
+  let selected = null;
+  let offset = new THREE.Vector3();
 
-      if (!dragging) {
-        velocity -= 0.01;
-        y += velocity;
-        if (y <= 1) {
-          y = 1;
-          velocity *= -0.9;
-        }
-        ball.position.y = y;
-      }
+  window.addEventListener('mousedown', (event) => {
+    mouse.x = (event.clientX / window.innerWidth)*2 -1;
+    mouse.y = -(event.clientY / window.innerHeight)*2 +1;
 
-      controls.update();
-      renderer.render(scene, camera);
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(ball);
+    if(intersects.length > 0){
+      selected = intersects[0].object;
+      offset.copy(intersects[0].point).sub(selected.position);
+      dragging = true;
+      controls.enabled = false;
     }
+  });
 
-    // Mouse events to pick and drag the ball
-    window.addEventListener('mousedown', (event) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  window.addEventListener('mouseup', () => {
+    dragging = false;
+    selected = null;
+    controls.enabled = true;
+  });
 
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObject(ball);
-      if (intersects.length > 0) {
-        selected = intersects[0].object;
-        offset.copy(intersects[0].point).sub(selected.position);
-        dragging = true;
-        controls.enabled = false; // Disable orbit controls while dragging
-      }
-    });
+  window.addEventListener('mousemove', (event) => {
+    if(!dragging || !selected) return;
 
-    window.addEventListener('mouseup', () => {
-      selected = null;
-      dragging = false;
-      velocity = 0;
-      controls.enabled = true; // Re-enable orbit controls
-    });
+    mouse.x = (event.clientX / window.innerWidth)*2 -1;
+    mouse.y = -(event.clientY / window.innerHeight)*2 +1;
 
-    window.addEventListener('mousemove', (event) => {
-      if (!dragging || !selected) return;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(plane);
+    if(intersects.length > 0){
+      selected.position.copy(intersects[0].point.sub(offset));
+      selected.position.y = 1; // lock y to ball radius (on the plane)
+    }
+  });
 
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
 
-      raycaster.setFromCamera(mouse, camera);
-      const planeIntersect = raycaster.intersectObject(plane);
-      if (planeIntersect.length > 0) {
-        selected.position.copy(planeIntersect[0].point.sub(offset));
-        y = selected.position.y;
-      }
-    });
+  function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene,camera);
+  }
+  animate();
+</script>
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth/window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-
-    animate();
-  </script>
 </body>
 </html>
 
