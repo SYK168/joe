@@ -23,7 +23,7 @@
   const controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
 
-  // Add a light
+  // Add light
   const light = new THREE.PointLight(0xffffff, 1);
   light.position.set(10, 10, 10);
   scene.add(light);
@@ -35,7 +35,7 @@
   ball.position.y = 1;
   scene.add(ball);
 
-  // Create plane for dragging
+  // Create plane
   const planeGeom = new THREE.PlaneGeometry(20, 20);
   const planeMat = new THREE.MeshStandardMaterial({color: 0x888888, side: THREE.DoubleSide});
   const plane = new THREE.Mesh(planeGeom, planeMat);
@@ -82,7 +82,7 @@
     const intersects = raycaster.intersectObject(plane);
     if(intersects.length > 0){
       selected.position.copy(intersects[0].point.sub(offset));
-      selected.position.y = 1; // lock y to ball radius (on the plane)
+      selected.position.y = 1; // lock ball height on plane
     }
   });
 
